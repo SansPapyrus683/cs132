@@ -39,7 +39,7 @@ public class BasicStuff extends DepthFirstVisitor {
             for (Map.Entry<String, Func> f : c.getValue().entrySet()) {
                 Func func = f.getValue();
                 if (!types.containsKey(func.ret)
-                        || func.args.stream().anyMatch(t -> !types.containsKey(t))) {
+                        || func.types.stream().anyMatch(t -> !types.containsKey(t))) {
                     throw new IllegalArgumentException();
                 }
 
@@ -47,7 +47,7 @@ public class BasicStuff extends DepthFirstVisitor {
                 while (!types.get(at).equals(at)) {
                     at = types.get(at);
                     Func up = funcs.get(at).get(f.getKey());
-                    if (up != null && (!up.args.equals(func.args)
+                    if (up != null && (!up.types.equals(func.types)
                             || !up.ret.equals(func.ret))) {
                         throw new IllegalArgumentException();
                     }
@@ -122,14 +122,19 @@ public class BasicStuff extends DepthFirstVisitor {
         return null;
     }
 
+    private String myName() {
+        // ok if your class name screws this up that's on you sorry
+        return String.format("%sFUNC%s", currClass, currFunc);
+    }
+
     @Override
     public void visit(MainClass n) {
         String name = n.f1.f0.toString();
         newClass(name, name);
         currFunc = "main";
-        Func f = new Func(currFunc, new ArrayList<>(Arrays.asList(LMAO)),
+        Func f = new Func(myName(), LMAO, new ArrayList<>(Arrays.asList(LMAO)),
                 new HashMap<>());
-        f.names.put(n.f11.f0.toString(), LMAO);
+        f.binds.put(n.f11.f0.toString(), LMAO);
         super.visit(n);
         currFunc = null;
     }
@@ -173,7 +178,7 @@ public class BasicStuff extends DepthFirstVisitor {
         String name = n.f2.f0.toString();
         currFunc = name;
         String ret = typeStr(n.f1);
-        Func f = new Func(ret, new ArrayList<>(), new HashMap<>());
+        Func f = new Func(myName(), ret, new ArrayList<>(), new HashMap<>());
         if (funcs.get(currClass).put(name, f) != null) {
             throw new IllegalArgumentException();
         }
@@ -186,10 +191,10 @@ public class BasicStuff extends DepthFirstVisitor {
         String name = n.f1.f0.toString();
         String type = typeStr(n.f0);
         Func f = funcs.get(currClass).get(currFunc);
-        if (f.names.put(name, type) != null) {
+        if (f.binds.put(name, type) != null) {
             throw new IllegalArgumentException();
         }
-        f.args.add(type);
+        f.types.add(type);
         super.visit(n);
     }
 }

@@ -67,8 +67,8 @@ public class Typecheck extends GJNoArguDepthFirst<String> {
         locals.clear();
         assigned.clear();
         Func f = bs.funcType(currClass, currFunc);
-        locals.putAll(f.names);
-        assigned.addAll(f.names.keySet());
+        locals.putAll(f.binds);
+        assigned.addAll(f.binds.keySet());
 
         super.visit(n);
 
@@ -228,11 +228,11 @@ public class Typecheck extends GJNoArguDepthFirst<String> {
             }
         }
 
-        if (args.size() != f.args.size()) {
+        if (args.size() != f.types.size()) {
             throw new IllegalArgumentException();
         }
-        for (int i = 0; i < f.args.size(); i++) {
-            if (!bs.canCast(args.get(i), f.args.get(i))) {
+        for (int i = 0; i < f.types.size(); i++) {
+            if (!bs.canCast(args.get(i), f.types.get(i))) {
                 throw new IllegalArgumentException();
             }
         }
