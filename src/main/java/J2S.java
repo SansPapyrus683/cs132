@@ -6,6 +6,7 @@ import minijava.syntaxtree.*;
 import minijava.MiniJavaParser;
 
 public class J2S extends GJNoArguDepthFirst<String> {
+    private static final String IMM = "justANumber";
     private final Goal root;
     private final BasicStuff bs;
     private final MemLayout mem;
@@ -156,13 +157,13 @@ public class J2S extends GJNoArguDepthFirst<String> {
     public String getAddr(String arr, String ind) {
         String ret = newTmp();
         prLine("%s = [%s + 0]", ret, arr); // first length of the array
-        prLine("v0 = 1");
-        prLine("%s = %s + v0", ret, ret);
+        prLine("%s = 1", IMM);
+        prLine("%s = %s + %s", ret, ret, IMM);
         prLine("%s = %s < %s", ret, ind, ret);
         prLine("if0 %s goto oob", ret);
-        prLine("v0 = 4");
-        prLine("%s = v0 * %s", ret, ind); // get byte offset
-        prLine("%s = v0 + %s", ret, ret); // add 1 since arrays are 0-indexed
+        prLine("%s = 4", IMM);
+        prLine("%s = %s * %s", ret, IMM, ind); // get byte offset
+        prLine("%s = %s + %s", ret, IMM, ret); // add 1 since arrays are 0-indexed
         prLine("%s = %s + %s", ret, arr, ret); // add array base
         return ret;
     }
@@ -211,8 +212,8 @@ public class J2S extends GJNoArguDepthFirst<String> {
         String t1 = visit(n.f0), t2 = visit(n.f2);
         String ret = newTmp();
         prLine("%s = %s + %s", ret, t1, t2);
-        prLine("v0 = 1");
-        prLine("%s = v0 < %s", ret, ret);
+        prLine("%s = 1", IMM);
+        prLine("%s = %s < %s", ret, IMM, ret);
         return ret;
     }
 
@@ -334,12 +335,12 @@ public class J2S extends GJNoArguDepthFirst<String> {
     public String visit(ArrayAllocationExpression n) {
         String len = visit(n.f3);
         String ret = newTmp();
-        prLine("v1 = 4");
-        prLine("%s = %s * v1", ret, len);
-        prLine("%s = %s + v1", ret, ret);
+        prLine("%s = 4", IMM);
+        prLine("%s = %s * %s", ret, len, IMM);
+        prLine("%s = %s + %s", ret, ret, IMM);
         prLine("%s = alloc(%s)", ret, ret);
-        prLine("v1 = %s", len);
-        prLine("[%s + 0] = v1", ret);
+        prLine("%s = %s", IMM, len);
+        prLine("[%s + 0] = %s", ret, IMM);
         return ret;
     }
 
@@ -349,12 +350,12 @@ public class J2S extends GJNoArguDepthFirst<String> {
         String className = n.f1.f0.toString();
 
         int num = mem.attrLoc.get(className).size() + 1;
-        prLine("v1 = %d", num * 4);
-        prLine("%s = alloc(v1)", ret);
+        prLine("%s = %d", IMM, num * 4);
+        prLine("%s = alloc(%s)", ret, IMM);
 
         String funcTable = newTmp();
-        prLine("v1 = %d", mem.funcLoc.get(className).size() * 4);
-        prLine("%s = alloc(v1)", funcTable);
+        prLine("%s = %d", IMM, mem.funcLoc.get(className).size() * 4);
+        prLine("%s = alloc(%s)", funcTable, IMM);
         prLine("[%s + 0] = %s", ret, funcTable);
         Map<String, String> funcs = actualFuncs.get(className);
         String tmp = newTmp();
@@ -371,8 +372,8 @@ public class J2S extends GJNoArguDepthFirst<String> {
     public String visit(NotExpression n) {
         String toNot = visit(n.f1);
         String ret = newTmp();
-        prLine("v2 = 1");
-        prLine("%s = v2 - %s", ret, toNot);
+        prLine("%s = 1", IMM);
+        prLine("%s = %s - %s", ret, IMM, toNot);
         return ret;
     }
 
