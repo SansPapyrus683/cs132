@@ -122,9 +122,9 @@ public class BasicStuff extends DepthFirstVisitor {
         return null;
     }
 
-    private String myName() {
+    public static String fid(String c, String f) {
         // ok if your class name screws this up that's on you sorry
-        return String.format("%sFUNC%s", currClass, currFunc);
+        return String.format("%sSEP%s", c, f);
     }
 
     @Override
@@ -132,8 +132,8 @@ public class BasicStuff extends DepthFirstVisitor {
         String name = n.f1.f0.toString();
         newClass(name, name);
         currFunc = "main";
-        Func f = new Func(myName(), LMAO, new ArrayList<>(Arrays.asList(LMAO)),
-                new HashMap<>());
+        Func f = new Func("main", LMAO, new ArrayList<>(Arrays.asList(LMAO)),
+                new LinkedHashMap<>());
         f.binds.put(n.f11.f0.toString(), LMAO);
         super.visit(n);
         currFunc = null;
@@ -177,8 +177,9 @@ public class BasicStuff extends DepthFirstVisitor {
     public void visit(MethodDeclaration n) {
         String name = n.f2.f0.toString();
         currFunc = name;
+        String fid = fid(currClass, currFunc);
         String ret = typeStr(n.f1);
-        Func f = new Func(myName(), ret, new ArrayList<>(), new HashMap<>());
+        Func f = new Func(fid, ret, new ArrayList<>(), new LinkedHashMap<>());
         if (funcs.get(currClass).put(name, f) != null) {
             throw new IllegalArgumentException();
         }
