@@ -1,4 +1,5 @@
 import java.util.*;
+
 import minijava.ParseException;
 import minijava.visitor.*;
 import minijava.syntaxtree.*;
@@ -9,10 +10,12 @@ public class J2S extends GJNoArguDepthFirst<String> {
     private final BasicStuff bs;
     private final MemLayout mem;
     private final Map<String, Map<String, String>> actualFuncs = new HashMap<>();
+    private final Map<String, Map<String, String>> actualVars = new HashMap<>();
 
     private int tmp = 0;
     private String currClass;
     private String currFunc;
+    private Set<String> locals = new HashSet<>();
     private Map<String, String> vars = new HashMap<>();
 
     public J2S(Goal root) {
@@ -25,25 +28,28 @@ public class J2S extends GJNoArguDepthFirst<String> {
         mem = new MemLayout(bs);
         for (String type : bs.funcs.keySet()) {
             if (bs.funcs.containsKey(type)) {
-                getActualFID(type);
+                getAllThings(type);
             }
         }
     }
 
-    private void getActualFID(String type) {
+    private void getAllThings(String type) {
         if (actualFuncs.containsKey(type)) {
             return;
         }
-        Map<String, String> resolver = new HashMap<>();
+        Map<String, String> funcs = new HashMap<>(), vars = new HashMap<>();
         String parent = bs.types.get(type);
         if (!type.equals(parent)) {
-            getActualFID(parent);
-            resolver.putAll(actualFuncs.get(parent));
+            getAllThings(parent);
+            funcs.putAll(actualFuncs.get(parent));
+            vars.putAll(actualVars.get(parent));
         }
         for (Map.Entry<String, Func> f : bs.funcs.get(type).entrySet()) {
-            resolver.put(f.getKey(), f.getValue().name);
+            funcs.put(f.getKey(), f.getValue().name);
         }
-        actualFuncs.put(type, resolver);
+        vars.putAll(bs.attrs.get(type));
+        actualFuncs.put(type, funcs);
+        actualVars.put(type, vars);
     }
 
     public void compile() {
@@ -55,8 +61,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
         currClass = n.f1.f0.toString();
         currFunc = "main";
         System.out.println("func main()");
-        vars.clear();
-        super.visit(n);
+        super.visit(n);  // no need to clear locals/vars bc this is the first visited
         returnStuff("v0");
         currClass = currFunc = null;
         return null;
@@ -92,7 +97,9 @@ public class J2S extends GJNoArguDepthFirst<String> {
         decl.append(')');
         System.out.println(decl);
 
-        vars = new HashMap<>(f.binds);
+        vars = new HashMap<>(actualVars.get(currClass));
+        vars.putAll(f.binds);
+        locals = new HashSet<>(f.binds.keySet());
         tmp = 0;
         super.visit(n);
 
@@ -120,6 +127,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
         }
         String name = n.f1.f0.toString();
         String type = bs.typeStr(n.f0);
+        locals.add(name);
         vars.put(name, type);
         return null;
     }
@@ -127,8 +135,13 @@ public class J2S extends GJNoArguDepthFirst<String> {
     @Override
     public String visit(AssignmentStatement n) {
         String id = n.f0.f0.toString();
+        String lVal = id;
+        if (!locals.contains(id)) {
+            Map<String, Integer> lookup = mem.attrLoc.get(currClass);
+            lVal = String.format("[this + %d]", lookup.get(id) * 4);
+        }
         String expr = visit(n.f2);
-        prLine("%s = %s", id, expr);
+        prLine("%s = %s", lVal, expr);
         return null;
     }
 
@@ -143,11 +156,13 @@ public class J2S extends GJNoArguDepthFirst<String> {
     public String getAddr(String arr, String ind) {
         String ret = newTmp();
         prLine("%s = [%s + 0]", ret, arr); // first length of the array
-        prLine("%s = %s + 1", ret, ret);
+        prLine("v0 = 1");
+        prLine("%s = %s + v0", ret, ret);
         prLine("%s = %s < %s", ret, ind, ret);
         prLine("if0 %s goto oob", ret);
         prLine("v0 = 4");
         prLine("%s = v0 * %s", ret, ind); // get byte offset
+        prLine("%s = v0 + %s", ret, ret); // add 1 since arrays are 0-indexed
         prLine("%s = %s + %s", ret, arr, ret); // add array base
         return ret;
     }
@@ -170,10 +185,11 @@ public class J2S extends GJNoArguDepthFirst<String> {
     public String visit(WhileStatement n) {
         String startLabel = newTmp();
         prLabel(startLabel);
-        String cond = super.visit(n.f2);
+        String cond = visit(n.f2);
         String doneLabel = newTmp();
         prLine("if0 %s goto %s", cond, doneLabel);
         super.visit(n.f4);
+        prLine("goto %s", startLabel);
         prLabel(doneLabel);
         return null;
     }
@@ -195,7 +211,8 @@ public class J2S extends GJNoArguDepthFirst<String> {
         String t1 = visit(n.f0), t2 = visit(n.f2);
         String ret = newTmp();
         prLine("%s = %s + %s", ret, t1, t2);
-        prLine("%s = 1 < %s", ret, ret);
+        prLine("v0 = 1");
+        prLine("%s = v0 < %s", ret, ret);
         return ret;
     }
 
@@ -243,7 +260,6 @@ public class J2S extends GJNoArguDepthFirst<String> {
     @Override
     public String visit(MessageSend n) {
         String callOn = visit(n.f0);
-        prLine("if0 %s goto null", callOn);
         String type = callOn.equals("this") ? currClass : vars.get(callOn);
 
         StringBuilder args = new StringBuilder(callOn).append(' ');
@@ -257,11 +273,13 @@ public class J2S extends GJNoArguDepthFirst<String> {
         }
         args.setLength(args.length() - 1);
 
+        String rawName = n.f2.f0.toString();
         String ret = newTmp();
         prLine("%s = [%s + 0]", ret, callOn);
-        int ind = mem.funcLoc.get(type).get(n.f2.f0.toString());
+        int ind = mem.funcLoc.get(type).get(rawName);
         prLine("%s = [%s + %d]", ret, ret, ind * 4);
         prLine("%s = call %s(%s)", ret, ret, args.toString());
+        vars.put(ret, bs.funcType(type, rawName).ret);
         return ret;
     }
 
@@ -294,7 +312,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
     @Override
     public String visit(Identifier n) {
         String id = n.f0.toString();
-        if (vars.containsKey(id)) {
+        if (locals.contains(id)) {
             return id;
         }
         Map<String, Integer> lookup = mem.attrLoc.get(currClass);
@@ -303,6 +321,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
         }
         String ret = newTmp();
         prLine("%s = [this + %d]", ret, lookup.get(id) * 4);
+        vars.put(ret, bs.attrType(currClass, id));
         return ret;
     }
 
@@ -314,12 +333,14 @@ public class J2S extends GJNoArguDepthFirst<String> {
     @Override
     public String visit(ArrayAllocationExpression n) {
         String len = visit(n.f3);
-        String tmp = newTmp();
+        String ret = newTmp();
         prLine("v1 = 4");
-        prLine("%s = %s * v1", tmp, len);
-        prLine("%s = %s + v1", tmp, tmp);
-        prLine("%s = alloc(%s)", tmp, tmp);
-        return tmp;
+        prLine("%s = %s * v1", ret, len);
+        prLine("%s = %s + v1", ret, ret);
+        prLine("%s = alloc(%s)", ret, ret);
+        prLine("v1 = %s", len);
+        prLine("[%s + 0] = v1", ret);
+        return ret;
     }
 
     @Override
@@ -385,7 +406,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
             Goal root = new MiniJavaParser(System.in).Goal();
             new J2S(root).compile();
         } catch (ParseException e) {
-            System.out.println(e.toString());
+            System.out.println(e);
         }
     }
 }
