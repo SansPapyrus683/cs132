@@ -34,10 +34,9 @@ public class MemLayout {
                 fl.put(f, fl.size());
             }
         }
+        int memAt = al.isEmpty() ? 0 : al.values().stream().max(Integer::compare).get();
         for (String a : bs.attrs.get(type).keySet()) {
-            if (!al.containsKey(a)) {
-                al.put(a, al.size() + 1);
-            }
+            al.put(a, ++memAt);
         }
 
         funcLoc.put(type, fl);

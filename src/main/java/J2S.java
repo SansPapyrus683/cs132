@@ -62,7 +62,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
         currClass = n.f1.f0.toString();
         currFunc = "main";
         System.out.println("func main()");
-        super.visit(n);  // no need to clear locals/vars bc this is the first visited
+        super.visit(n); // no need to clear locals/vars bc this is the first visited
         returnStuff("v0");
         currClass = currFunc = null;
         return null;
@@ -102,11 +102,10 @@ public class J2S extends GJNoArguDepthFirst<String> {
         vars.putAll(f.binds);
         locals = new HashSet<>(f.binds.keySet());
         tmp = 0;
-        super.visit(n);
 
-        String ret = visit(n.f10);
-
-        returnStuff(ret);
+        visit(n.f7);
+        visit(n.f8);
+        returnStuff(visit(n.f10));
         currFunc = null;
         return null;
     }
@@ -210,11 +209,20 @@ public class J2S extends GJNoArguDepthFirst<String> {
 
     @Override
     public String visit(AndExpression n) {
-        String t1 = visit(n.f0), t2 = visit(n.f2);
+        String bad = newTmp();
+        String end = newTmp();
+        String t1 = visit(n.f0);
+        prLine("if0 %s goto %s", t1, bad);
+        String t2 = visit(n.f2);
+        prLine("if0 %s goto %s", t2, bad);
+
         String ret = newTmp();
-        prLine("%s = %s + %s", ret, t1, t2);
-        prLine("%s = 1", IMM);
-        prLine("%s = %s < %s", ret, IMM, ret);
+        prLine("%s = 1", ret);
+        prLine("goto %s", end);
+        prLabel(bad);
+        prLine("%s = 0", ret);
+        prLabel(end);
+
         return ret;
     }
 
@@ -255,7 +263,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
         String arr = visit(n.f0);
         String ind = visit(n.f2);
         String ret = getAddr(arr, ind);
-        prLine("%s = [%s + 0]", ret, ret);  // actually access it
+        prLine("%s = [%s + 0]", ret, ret); // actually access it
         return ret;
     }
 
@@ -351,7 +359,13 @@ public class J2S extends GJNoArguDepthFirst<String> {
         String ret = newTmp();
         String className = n.f1.f0.toString();
 
-        int num = mem.attrLoc.get(className).size() + 1;
+        Map<String, Integer> al = mem.attrLoc.get(className);
+        int num = 1;
+        // the ternary looked too ugly lmao
+        if (!al.isEmpty()) {
+            num += al.values().stream().max(Integer::compare).get();
+        }
+
         prLine("%s = %d", IMM, num * 4);
         prLine("%s = alloc(%s)", ret, IMM);
 
