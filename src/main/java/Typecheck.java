@@ -204,7 +204,7 @@ public class Typecheck extends GJNoArguDepthFirst<String> {
     @Override
     public String visit(ArrayLength n) {
         String arr = visit(n.f0);
-        if ("int[]".equals(arr)) {
+        if (!"int[]".equals(arr)) {
             throw new IllegalArgumentException();
         }
         return "int";
