@@ -156,6 +156,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
 
     public String getAddr(String arr, String ind) {
         String ret = newTmp();
+        prLine("if0 %s goto null", arr);
         prLine("%s = [%s + 0]", ret, arr); // first length of the array
         prLine("%s = 1", IMM);
         prLine("%s = %s + %s", ret, ret, IMM);
@@ -174,10 +175,10 @@ public class J2S extends GJNoArguDepthFirst<String> {
         String elseLabel = newTmp();
         String doneLabel = newTmp();
         prLine("if0 %s goto %s", cond, elseLabel);
-        super.visit(n.f4);
+        visit(n.f4);
         prLine("goto %s", doneLabel);
         prLabel(elseLabel);
-        super.visit(n.f6);
+        visit(n.f6);
         prLabel(doneLabel);
         return null;
     }
@@ -189,7 +190,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
         String cond = visit(n.f2);
         String doneLabel = newTmp();
         prLine("if0 %s goto %s", cond, doneLabel);
-        super.visit(n.f4);
+        visit(n.f4);
         prLine("goto %s", startLabel);
         prLabel(doneLabel);
         return null;
@@ -262,6 +263,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
     public String visit(MessageSend n) {
         String callOn = visit(n.f0);
         String type = callOn.equals("this") ? currClass : vars.get(callOn);
+        prLine("if0 %s goto null", callOn);
 
         StringBuilder args = new StringBuilder(callOn).append(' ');
         if (n.f4.present()) {
