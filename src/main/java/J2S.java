@@ -27,7 +27,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
         // sure, typecheck already has this as a member variable but, uh, idc
         bs = new BasicStuff(root);
         mem = new MemLayout(bs);
-        bs.funcs.keySet().forEach(t -> getAllThings(t));
+        bs.funcs.keySet().forEach(this::getAllThings);
     }
 
     private void getAllThings(String type) {
@@ -41,8 +41,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
             funcs.putAll(actualFuncs.get(parent));
             vars.putAll(actualVars.get(parent));
         }
-        bs.funcs.get(type).entrySet()
-                .forEach(f -> funcs.put(f.getKey(), f.getValue().name));
+        bs.funcs.get(type).forEach((key, value) -> funcs.put(key, value.name));
         vars.putAll(bs.attrs.get(type));
         actualFuncs.put(type, funcs);
         actualVars.put(type, vars);
@@ -87,15 +86,18 @@ public class J2S extends GJNoArguDepthFirst<String> {
         StringBuilder decl = new StringBuilder("func ");
         decl.append(BasicStuff.fid(currClass, currFunc)).append("(this ");
         for (String arg : f.binds.keySet()) {
-            decl.append(arg).append(' ');
+            decl.append(safety(arg)).append(' ');
         }
         decl.setLength(decl.length() - 1);
         decl.append(')');
         System.out.println(decl);
 
         vars = new HashMap<>(actualVars.get(currClass));
-        vars.putAll(f.binds);
-        locals = new HashSet<>(f.binds.keySet());
+        locals = new HashSet<>();
+        for (Map.Entry<String, String> entry : f.binds.entrySet()) {
+            vars.put(safety(entry.getKey()), entry.getValue());
+            locals.add(safety(entry.getKey()));
+        }
         tmp = 0;
 
         visit(n.f7);
@@ -120,7 +122,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
         if (currFunc == null) {
             return null;
         }
-        String name = n.f1.f0.toString();
+        String name = safety(n.f1.f0.toString());
         String type = bs.typeStr(n.f0);
         locals.add(name);
         vars.put(name, type);
@@ -130,8 +132,8 @@ public class J2S extends GJNoArguDepthFirst<String> {
     @Override
     public String visit(AssignmentStatement n) {
         String id = n.f0.f0.toString();
-        String lVal = id;
-        if (!locals.contains(id)) {
+        String lVal = safety(id);
+        if (!locals.contains(lVal)) {
             Map<String, Integer> lookup = mem.attrLoc.get(currClass);
             lVal = String.format("[this + %d]", lookup.get(id) * 4);
         }
@@ -323,8 +325,8 @@ public class J2S extends GJNoArguDepthFirst<String> {
     @Override
     public String visit(Identifier n) {
         String id = n.f0.toString();
-        if (locals.contains(id)) {
-            return id;
+        if (locals.contains(safety(id))) {
+            return safety(id);
         }
         Map<String, Integer> lookup = mem.attrLoc.get(currClass);
         if (!lookup.containsKey(id)) {
@@ -408,6 +410,10 @@ public class J2S extends GJNoArguDepthFirst<String> {
 
     private String newTmp() {
         return String.format("asdf%d", tmp++);
+    }
+
+    private String safety(String var) {
+        return "var" + var;
     }
 
     private void prLabel(String label) {
