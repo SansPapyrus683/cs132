@@ -34,7 +34,7 @@ public class MemLayout {
                 fl.put(f, fl.size());
             }
         }
-        int memAt = al.isEmpty() ? 0 : al.values().stream().max(Integer::compare).get();
+        int memAt = al.isEmpty() ? 0 : Collections.max(al.values());
         for (String a : bs.attrs.get(type).keySet()) {
             al.put(a, ++memAt);
         }

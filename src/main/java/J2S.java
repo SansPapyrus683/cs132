@@ -156,11 +156,16 @@ public class J2S extends GJNoArguDepthFirst<String> {
     public String getAddr(String arr, String ind) {
         String ret = newTmp();
         prLine("if0 %s goto null", arr);
-        prLine("%s = [%s + 0]", ret, arr); // first length of the array
-        prLine("%s = 1", IMM);
-        prLine("%s = %s + %s", ret, ret, IMM);
-        prLine("%s = %s < %s", ret, ind, ret);
+        prLine("%s = [%s + 0]", ret, arr); // get length of the array
+        prLine("%s = %s < %s", ret, ind, ret);  // force ind < length
         prLine("if0 %s goto oob", ret);
+
+        prLine("%s = 1", IMM);
+        prLine("%s = %s + %s", ret, ind, IMM);
+        prLine("%s = 0", IMM);
+        prLine("%s = %s < %s", ret, IMM, ret);  // do another check for 0 <= ind
+        prLine("if0 %s goto oob", ret);
+
         prLine("%s = 4", IMM);
         prLine("%s = %s * %s", ret, IMM, ind); // get byte offset
         prLine("%s = %s + %s", ret, IMM, ret); // add 1 since arrays are 0-indexed
@@ -363,7 +368,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
         int num = 1;
         // the ternary looked too ugly lmao
         if (!al.isEmpty()) {
-            num += al.values().stream().max(Integer::compare).get();
+            num += Collections.max(al.values());
         }
 
         prLine("%s = %d", IMM, num * 4);
