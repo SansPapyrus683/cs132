@@ -27,11 +27,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
         // sure, typecheck already has this as a member variable but, uh, idc
         bs = new BasicStuff(root);
         mem = new MemLayout(bs);
-        for (String type : bs.funcs.keySet()) {
-            if (bs.funcs.containsKey(type)) {
-                getAllThings(type);
-            }
-        }
+        bs.funcs.keySet().forEach(t -> getAllThings(t));
     }
 
     private void getAllThings(String type) {
@@ -45,9 +41,8 @@ public class J2S extends GJNoArguDepthFirst<String> {
             funcs.putAll(actualFuncs.get(parent));
             vars.putAll(actualVars.get(parent));
         }
-        for (Map.Entry<String, Func> f : bs.funcs.get(type).entrySet()) {
-            funcs.put(f.getKey(), f.getValue().name);
-        }
+        bs.funcs.get(type).entrySet()
+                .forEach(f -> funcs.put(f.getKey(), f.getValue().name));
         vars.putAll(bs.attrs.get(type));
         actualFuncs.put(type, funcs);
         actualVars.put(type, vars);
@@ -157,13 +152,13 @@ public class J2S extends GJNoArguDepthFirst<String> {
         String ret = newTmp();
         prLine("if0 %s goto null", arr);
         prLine("%s = [%s + 0]", ret, arr); // get length of the array
-        prLine("%s = %s < %s", ret, ind, ret);  // force ind < length
+        prLine("%s = %s < %s", ret, ind, ret); // force ind < length
         prLine("if0 %s goto oob", ret);
 
         prLine("%s = 1", IMM);
         prLine("%s = %s + %s", ret, ind, IMM);
         prLine("%s = 0", IMM);
-        prLine("%s = %s < %s", ret, IMM, ret);  // do another check for 0 <= ind
+        prLine("%s = %s < %s", ret, IMM, ret); // do another check for 0 <= ind
         prLine("if0 %s goto oob", ret);
 
         prLine("%s = 4", IMM);
