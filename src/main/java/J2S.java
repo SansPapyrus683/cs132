@@ -426,7 +426,8 @@ public class J2S extends GJNoArguDepthFirst<String> {
 
     public static void main(String[] args) {
         try {
-            Goal root = new MiniJavaParser(System.in).Goal();
+            new MiniJavaParser(System.in);
+            Goal root = MiniJavaParser.Goal();
             new J2S(root).compile();
         } catch (ParseException e) {
             System.out.println(e);

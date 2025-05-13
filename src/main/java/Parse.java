@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** thought this would be a one and done thing so code isn't the cleanest lmao */
+/** yeah this code highkey sucks, it is what it is */
 public class Parse {
     private static int at = 0;
     private static List<String> tokens;
@@ -15,7 +15,12 @@ public class Parse {
             return;
         }
         tokens = lex.tokens;
-        System.out.println(s() && at == tokens.size() ? "Program parsed successfully" : "Parse error");
+
+        if (s() && at == tokens.size()) {
+            System.out.println("Program parsed successfully");
+        } else {
+            System.out.println("Parse error");
+        }
     }
 
     private static boolean match(String... what) {
@@ -73,9 +78,11 @@ class Lexer {
     public boolean bad = false;
 
     private int at = 0;
-    private static Set<Character> JUST_ONE = new HashSet<>(Arrays.asList('{', '}', '(', ')', ';', '!'));
+    private static Set<Character> JUST_ONE = new HashSet<>(
+            Arrays.asList('{', '}', '(', ')', ';', '!'));
     private static Set<String> STRS = new HashSet<>(
-            Arrays.asList("System.out.println", "if", "else", "while", "true", "false"));
+            Arrays.asList("System.out.println", "if", "else", "while", "true",
+                    "false"));
 
     public Lexer(String str) {
         str = str + ' ';
@@ -85,7 +92,8 @@ class Lexer {
                 tokens.add(Character.toString(curr));
             } else if (Character.isAlphabetic(curr)) {
                 int to = at;
-                for (; Character.isAlphabetic(str.charAt(to)) || str.charAt(to) == '.'; to++)
+                for (; Character.isAlphabetic(str.charAt(to))
+                        || str.charAt(to) == '.'; to++)
                     ;
                 String sub = str.substring(at, to);
                 if (STRS.contains(sub)) {
