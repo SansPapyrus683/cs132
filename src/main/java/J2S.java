@@ -57,7 +57,7 @@ public class J2S extends GJNoArguDepthFirst<String> {
         currFunc = "main";
         System.out.println("func main()");
         super.visit(n); // no need to clear locals/vars bc this is the first visited
-        returnStuff("v0");
+        returnStuff("justANumber");
         currClass = currFunc = null;
         return null;
     }
