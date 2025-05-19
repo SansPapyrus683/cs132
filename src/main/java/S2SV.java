@@ -1,4 +1,5 @@
 import java.util.*;
+import java.util.function.Predicate;
 
 import IR.SparrowParser;
 import IR.ParseException;
@@ -57,7 +58,9 @@ public class S2SV extends DepthFirst {
         header.append(')');
         System.out.println(header);
 
-        ranges = lv.ranges.get(func); // not gonna modify this, it's just a shorthand
+        // just shorthands, nothing much
+        ranges = lv.ranges.get(func);
+        final TreeSet<Integer> calls = lv.calls.get(func);
 
         List<String> params = f.formalParameters.stream()
                 .map(Object::toString).toList();
@@ -84,14 +87,14 @@ public class S2SV extends DepthFirst {
         ranges.entrySet().stream().sorted(Comparator.comparingInt(r -> r.getValue()[0]))
                 .forEach(r -> {
                     String name = r.getKey();
-                    int[] interval = r.getValue();
+                    int[] range = r.getValue();
                     if (reg.containsKey(name)) {
                         return;
                     }
 
                     List<String> retired = new ArrayList<>();
                     for (String a : active) {
-                        if (ranges.get(a)[1] >= interval[0]) {
+                        if (ranges.get(a)[1] >= range[0]) {
                             break;
                         }
                         retired.add(a);
@@ -105,7 +108,7 @@ public class S2SV extends DepthFirst {
 
                     if (active.size() == messAroundNum) {
                         String spill = active.last();
-                        if (ranges.get(spill)[1] > interval[1]) {
+                        if (ranges.get(spill)[1] > range[1]) {
                             reg.put(name, reg.get(spill));
                             reg.put(spill, spill);
                             active.remove(spill);
@@ -114,8 +117,15 @@ public class S2SV extends DepthFirst {
                             reg.put(name, name);
                         }
                     } else {
-                        Optional<String> please = free.stream().filter(S2SV::isSave).findAny();
+                        NavigableSet<Integer> within = calls.headSet(range[1], true)
+                                .tailSet(range[0], true);
+                        Predicate<String> cond = within.isEmpty() ? s -> !S2SV.isSave(s)
+                                : S2SV::isSave;
+
+                        Optional<String> please = free.stream().filter(cond)
+                                .findAny();
                         String use = please.orElse(free.iterator().next());
+
                         free.remove(use);
                         reg.put(name, use);
                         active.add(name);

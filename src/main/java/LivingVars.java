@@ -7,6 +7,7 @@ import sparrow.*;
 
 public class LivingVars extends DepthFirst {
     public final Map<String, Map<String, int[]>> ranges = new HashMap<>();
+    public final Map<String, TreeSet<Integer>> calls = new HashMap<>();
 
     private final Map<String, List<List<Integer>>> to = new HashMap<>();
     private final Map<String, List<List<Integer>>> from = new HashMap<>();
@@ -27,6 +28,7 @@ public class LivingVars extends DepthFirst {
     public void visit(FunctionDecl f) {
         func = f.functionName.toString();
         int lineNum = f.block.instructions.size();
+        calls.put(func, new TreeSet<>());
         to.put(func, new ArrayList<>());
         from.put(func, new ArrayList<>());
         use.put(func, new ArrayList<>());
@@ -216,6 +218,7 @@ public class LivingVars extends DepthFirst {
     public void visit(Call n) {
         addEdge(line, line + 1);
         addUse(n.callee);
+        calls.get(func).add(line);
         n.args.stream().forEach(id -> addUse(id));
         setDef(n.lhs);
     }
