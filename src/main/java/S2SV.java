@@ -164,7 +164,7 @@ public class S2SV extends DepthFirst {
         for (Instruction i : b.instructions) {
             i.accept(this);
             line++;
-            System.out.println();
+            System.out.println();  // this helped alot when debugging lol
         }
 
         Identifier rid = b.return_id;
