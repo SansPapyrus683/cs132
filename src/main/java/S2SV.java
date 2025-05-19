@@ -65,8 +65,8 @@ public class S2SV extends DepthFirst {
         reg = new HashMap<>();
         for (int i = 0; i < Math.min(params.size(), ARGS.size()); i++) {
             String param = params.get(i);
-            if (ranges.get(param) != null) {
-                reg.put(params.get(i), ARGS.get(i));
+            if (ranges.containsKey(param)) {
+                reg.put(param, ARGS.get(i));
             } else {
                 free.add(ARGS.get(i));
             }

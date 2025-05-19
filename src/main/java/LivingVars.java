@@ -6,11 +6,13 @@ import sparrow.visitor.DepthFirst;
 import sparrow.*;
 
 public class LivingVars extends DepthFirst {
-    public final Map<String, Map<String, int[]>> ranges;
+    public final Map<String, Map<String, int[]>> ranges = new HashMap<>();
 
-    private final Map<String, List<List<Integer>>> to, from;
-    private final Map<String, List<Set<String>>> use;
-    private final Map<String, List<String>> def; // each line can define at most one
+    private final Map<String, List<List<Integer>>> to = new HashMap<>();
+    private final Map<String, List<List<Integer>>> from = new HashMap<>();
+    private final Map<String, List<Set<String>>> use = new HashMap<>();
+    // each line can define at most one
+    private final Map<String, List<String>> def = new HashMap<>();
 
     private Map<Integer, String> gotos;
     private Map<String, Integer> labels;
@@ -18,11 +20,6 @@ public class LivingVars extends DepthFirst {
     private int line;
 
     public LivingVars(Program prog) {
-        ranges = new HashMap<>();
-        to = new HashMap<>();
-        from = new HashMap<>();
-        use = new HashMap<>();
-        def = new HashMap<>();
         prog.accept(this);
     }
 
